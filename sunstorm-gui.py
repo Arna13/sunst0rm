@@ -1,12 +1,23 @@
-from operator import truediv
 import os
 import sys
-import zipfile
-from manifest import Manifest
-import api
 import subprocess
-from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QFileDialog, QMessageBox
-from gui import Ui_MainWindow
+
+try:
+    from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QFileDialog, QMessageBox
+    import zipfile
+    import api
+    from manifest import Manifest
+    from gui import Ui_MainWindow
+except ImportError:
+    if input("Requirements not satisfied, please install the pip requirements.\nTry and install automatically? (y/n) ") == "y":
+        try:
+            os.system("pip3 install -r requirements.txt")
+        except Exception:
+            print("Error automatically installing requirements, please install them manually.")
+            quit()
+        
+        print("Please restart sunst0rm")
+    
 
 class QtGui(QMainWindow):
     def __init__(self, parent=None):

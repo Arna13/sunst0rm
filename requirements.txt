@@ -1,3 +1,4 @@
 requests
 remotezip
 pyimg4
+PyQt5

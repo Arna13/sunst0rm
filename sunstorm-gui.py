@@ -1,11 +1,13 @@
-from encodings import utf_8
 import os
 import sys
-from time import sleep
+import io
+import subprocess
+import threading
 
 try:
     from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QFileDialog, QMessageBox
     from PyQt5 import QtCore
+    from PyQt5.QtCore import QObject, QThread, pyqtSignal
     from gui import Ui_MainWindow
     from restore_gui import Ui_RestoreDialog
     from boot_gui import Ui_BootDialog
@@ -27,7 +29,9 @@ class QtGui(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        dep = dependencies()
+        #dep = dependencies()
+        dep = None
+        QMessageBox.critical(self, "Error!", f"Dependency check stopped")
         if dep != None:
             QMessageBox.critical(self, "Error!", f"{dep} not found, please install it.")
             quit()
@@ -151,7 +155,6 @@ class QtGui(QMainWindow):
         if fileName:
             self.ui.BlobLineEdit.setText(fileName)
             
-finished = False
 class RestoreDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -163,34 +166,32 @@ class RestoreDialog(QDialog):
                 f.close()
         self.restoreui.RestoreTextEdit.append(f"Restoring now with: {cmd}\n")
 
-        self.process = QtCore.QProcess(self)
-        self.process.readyReadStandardOutput.connect(self.stdoutReady)
-        self.process.readyReadStandardError.connect(self.stderrReady)
+        global proc
+        proc = subprocess.Popen(['sh ','./sunstorm_command.sh'],stdout=subprocess.PIPE)
 
-        self.process.start("sh", ["sunstorm_command.sh"])
+        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+            print(line)
 
-        if finished:
-                self.restoreui.CancelButton.setText("Done")
-        
+        self.thread = QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
+
+        self.restoreui.CancelButton.setEnabled(False)
+
+        self.thread.finished.connect(
+            lambda: print("AAAAAAAAAAAAAAAA")
+        )
 
     def CancelButton_clicked(self):
-            if finished:
-                RestoreDialog.reject(self)
-            self.restoreui.CancelButton.setEnabled(False)
-            self.process.kill()
-            print("Killed process")
-            RestoreDialog.reject(self)
-
-    def append(self, text):
-        self.restoreui.RestoreTextEdit.append(text)
-
-    def stdoutReady(self):
-        text = str(self.process.readAllStandardOutput(), 'utf-8')
-        self.append(text)
-
-    def stderrReady(self):
-        text = str(self.process.readAllStandardError(), 'utf-8')
-        self.append(text)
+        self.restoreui.CancelButton.setEnabled(False)
+        proc.terminate()
+        print("Subprocess stopped!")
+        RestoreDialog.reject(self)
 
 class BootDialog(QDialog):
     def __init__(self, parent=None):
@@ -225,6 +226,25 @@ class BootDialog(QDialog):
     def stderrReady(self):
         text = str(self.process.readAllStandardError(), 'utf-8')
         self.append(text)
+
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+
+    def run(self):
+        global proc
+        fnsh = False
+        print("thread running")
+        while not fnsh:
+            try:
+                poll = proc.poll()
+            except:
+                pass
+            if poll is not None:
+                fnsh = True
+                self.finished.emit()
+                
 
 def main_gui():
     app = QApplication(sys.argv)

@@ -119,8 +119,12 @@ class QtGui(QMainWindow):
             if self.ui.LegacyCheckBox.isChecked():
                 args += " --legacy"
 
-            command = f"{sys.executable} {os.path.abspath(os.getcwd())}sunstorm.py {args}"
+            command = f"cd {os.path.dirname(os.path.abspath(__file__))} && {sys.executable} {os.path.abspath(os.getcwd())}/sunstorm.py {args}"
 
+            if not os.path.exists(f"{os.path.dirname(os.path.abspath(__file__))}/sunstorm.py"):
+                QMessageBox.critical(self, "Error!", "sunst0rm was not found in current path.")
+                return
+            
             QMessageBox.critical(self, "Warning!", "After this script finishes, put your device into pwndfu with sigchecks removed again and run \"boot.sh\"")
 
             tell.app( 'Terminal', 'do script "' + command + '"') 

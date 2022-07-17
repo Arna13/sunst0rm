@@ -75,7 +75,7 @@ class QtGui(QMainWindow):
                 QMessageBox.critical(self, "Error!", "sunst0rm was not found in current path.")
                 return
 
-            command = f"{sys.executable} {path}/sunstorm.py {args}"
+            command = f"cd {os.path.dirname(os.path.abspath(__file__))} && {sys.executable} {path}/sunstorm.py {args}"
 
             QMessageBox.critical(self, "Warning!", "Connect your device already in DFU mode with sigchecks removed before proceeding")
 
